@@ -1,6 +1,6 @@
 /**
  * 阅后即焚（闪照） - Cloudflare Worker
- * 纯单文件：原生 JS + R2 + KV + TailwindCSS + AES加密 + 不限次数群发 + 防截屏 + HEIC/HEIF 全面兼容
+ * 纯单文件：原生 JS + R2 + KV + TailwindCSS + AES加密 + 不限次数群发 + HEIC/HEIF 全面兼容
  * v2：新增「单张专属管理密码」—— 立即焚毁 / 调整有效期 / 调整查看人数（原链接不变）
  */
 
@@ -909,7 +909,7 @@ const htmlViewer = `
             <div id="tipLayer" class="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none backdrop-blur-xl bg-black/60 transition-opacity">
                 <div class="bg-white/10 px-8 py-4 rounded-3xl backdrop-blur-md text-center border border-white/10 shadow-2xl">
                     <p class="text-xl font-bold tracking-widest mb-1">长按屏幕查看</p>
-                    <p class="text-xs text-gray-400">松手即刻销毁 / 防截屏保护中</p>
+                    <p class="text-xs text-gray-400">松手即刻销毁</p>
                 </div>
             </div>
 
