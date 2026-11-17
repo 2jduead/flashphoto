@@ -1,6 +1,6 @@
 /**
  * 阅后即焚（闪照） - Cloudflare Worker
- * 纯单文件：原生 JS + R2 + KV + TailwindCSS + AES加密 + 不限次数群发 + HEIC/HEIF 全面兼容
+ * 纯单文件：原生 JS + R2 + KV + TailwindCSS + AES加密 + 不限次数群发 +  HEIC/HEIF 全面兼容
  * v2：新增「单张专属管理密码」—— 立即焚毁 / 调整有效期 / 调整查看人数（原链接不变）
  */
 
@@ -521,7 +521,7 @@ const htmlIndex = `
         <form id="uploadForm" class="space-y-4">
             <div>
                 <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2 transition-colors">选择图片</label>
-                <input type="file" id="file" accept="image/*,.heic,.heif" class="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/40 file:text-blue-700 dark:file:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/60 min-h-[44px] transition-colors" required>
+                <input type="file" id="file" accept="image/*,.heic,.heif" class="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-3 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-blue-50 dark:file:bg-blue-900/40 file:text-blue-700 dark:text-blue-400 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/60 min-h-[44px] transition-colors" required>
             </div>
             
             <div class="grid grid-cols-2 gap-4">
@@ -959,6 +959,11 @@ const htmlViewer = `
             if (e && e.type !== 'blur' && e.type !== 'visibilitychange') {
                 e.preventDefault();
             }
+            // 拦截多指触控（如手机三指截屏）
+            if (e && e.touches && e.touches.length > 1) {
+                destroy(e);
+                return;
+            }
             if (isViewed || !mediaBlob) return;
             isViewed = true; 
 
@@ -985,7 +990,7 @@ const htmlViewer = `
 
         const destroy = (e) => {
             if (e && e.type !== 'blur' && e.type !== 'visibilitychange') {
-                e.preventDefault();
+                if (e.cancelable) e.preventDefault();
             }
             if (!isViewed) return;
             
@@ -1006,9 +1011,12 @@ const htmlViewer = `
             isViewed = false;
         };
 
-        // --- 常规交互监听 ---
+        // --- 常规交互与多指触控拦截 ---
         touchTarget.addEventListener('mousedown', startView);
         touchTarget.addEventListener('touchstart', startView, { passive: false });
+        touchTarget.addEventListener('touchmove', (e) => {
+            if (e.touches && e.touches.length > 1) destroy(e);
+        }, { passive: false });
         window.addEventListener('mouseup', destroy);
         window.addEventListener('touchend', destroy);
         window.addEventListener('touchcancel', destroy);
@@ -1018,27 +1026,36 @@ const htmlViewer = `
         window.addEventListener('blur', destroy);
         window.addEventListener('mouseleave', destroy);
         window.addEventListener('pagehide', destroy);
+        window.addEventListener('resize', destroy);
         window.addEventListener('visibilitychange', () => {
             if (document.hidden) destroy();
         });
 
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'PrintScreen' || e.keyCode === 44) {
-                destroy(); 
+        // 补齐 Alt 键与全键盘拦截：看图期间按任意键（含单按 Alt 呼出微信 Alt+A 截图）立即销毁
+        const handleKeyIntercept = (e) => {
+            const key = (e.key || '').toLowerCase();
+            const isDangerKey =
+                e.altKey ||
+                e.ctrlKey ||
+                e.metaKey ||
+                e.shiftKey ||
+                key === 'alt' ||
+                key === 'printscreen' ||
+                key === 'f12' ||
+                e.keyCode === 18 ||
+                e.keyCode === 44 ||
+                e.keyCode === 123 ||
+                ['s', 'p', 'c', 'a', 'shift'].includes(key);
+
+            if (isViewed || isDangerKey) {
+                destroy(e);
                 e.preventDefault();
+                e.stopPropagation();
             }
-            if (e.key === 'F12' || e.keyCode === 123) {
-                destroy();
-                e.preventDefault();
-            }
-            if (e.ctrlKey || e.metaKey) {
-                const key = e.key.toLowerCase();
-                if (['s', 'p', 'c', 'shift'].includes(key)) {
-                    destroy();
-                    e.preventDefault();
-                }
-            }
-        });
+        };
+
+        window.addEventListener('keydown', handleKeyIntercept, true);
+        window.addEventListener('keyup', handleKeyIntercept, true);
     </script>
 </body>
 </html>
